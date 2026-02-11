@@ -1,98 +1,86 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import SearchBar from "@/components/SearchBar";
+import { icons } from "@/constants/icons";
+import { images } from "@/constants/images";
+import { ActivityIndicator, FlatList, Image, Text, View, Pressable, Platform } from "react-native";
+import { useState } from "react";
+import { useRouter } from "expo-router";
+import useFetch from "@/services/useFetch";
+import { fetchTrendingMovies } from "@/services/api";
+import MovieCard from "@/components/MovieCard";
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+export default function Index() {
+  const router = useRouter();
+  const [searchQuery, setSearchQuery] = useState('');
+  const { data: movies, loading: moviesLoading, error: moviesError } = useFetch(() => fetchTrendingMovies({
+    query: ""
+  }))
 
-export default function HomeScreen() {
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
+    <View className="flex-1 bg-primary">
+      <Image source={images.bg} className="absolute w-full z-0" />
+      <FlatList
+        data={movies}
+        renderItem={({ item }) => (
+          <MovieCard {...item} />
+        )}
+        keyExtractor={(item) => item.id.toString()}
+        numColumns={3}
+        className="flex-1 px-4"
+        showsVerticalScrollIndicator={false}
+        columnWrapperStyle={{
+          justifyContent: 'space-between',
+          marginBottom: 10
+        }}
+        contentContainerStyle={{
+          paddingBottom: 100
+        }}
+        ListHeaderComponent={
+          <View className="items-center w-full mt-20">
+            <Image
+              source={icons.logo}
+              className="w-48 h-32 mb-4"
+              resizeMode="contain"
             />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+            <Pressable
+              onPress={() => {
+                if (Platform.OS === 'web') {
+                  const link = document.createElement('a');
+                  link.href = '/universal.apk';
+                  link.download = 'universal.apk';
+                  document.body.appendChild(link);
+                  link.click();
+                  document.body.removeChild(link);
+                }
+              }}
+              className="bg-accent px-10 py-4 rounded-2xl flex-row items-center justify-center mb-10 hover:opacity-90 active:scale-95 transition-all border-b-4 border-dark-100 shadow-xl"
+            >
+              <Text className="text-primary font-bold text-xl uppercase tracking-widest">Download App</Text>
+            </Pressable>
+
+            {moviesLoading ? (
+              <ActivityIndicator size="large" color="#0000ff" className="mt-10 self-center" />
+            ) : moviesError ? (
+              <Text className="text-white text-center mt-5">Error: {moviesError?.message}</Text>
+            ) : (
+              <View className="w-full mt-5">
+                <SearchBar
+                  placeholder="Search for a movie"
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                  onSubmitEditing={() => {
+                    if (searchQuery.trim()) {
+                      router.push({ pathname: '/search', params: { query: searchQuery } });
+                      setSearchQuery('');
+                    }
+                  }}
+                />
+                <Text className="text-lg text-white font-bold mt-5 mb-5 text-left w-full">Latest Trending Movies</Text>
+              </View>
+            )}
+          </View>
+        }
+      />
+    </View>
   );
 }
-
-const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-  },
-});
